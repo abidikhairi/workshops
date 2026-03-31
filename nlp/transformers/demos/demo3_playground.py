@@ -21,10 +21,22 @@ console = Console()
 COMMAND_NAMES = ["generate", "attention", "predict", "fill", "help", "quit"]
 
 HELP_LINES = [
-    ("[bold cyan]generate[/]   [dim]<prompt>[/]", "generate text from a prompt (try different temps)"),
-    ("[bold cyan]predict[/]    [dim]<prompt>[/]", "show top-10 next-token probabilities"),
-    ("[bold cyan]attention[/]  [dim]<sentence>[/]", "show which words attend to which (saves heatmap)"),
-    ("[bold cyan]fill[/]       [dim]<sentence with [MASK]>[/]", "fill in [MASK] using BERT"),
+    (
+        "[bold cyan]generate[/]   [dim]<prompt>[/]",
+        "generate text from a prompt (try different temps)",
+    ),
+    (
+        "[bold cyan]predict[/]    [dim]<prompt>[/]",
+        "show top-10 next-token probabilities",
+    ),
+    (
+        "[bold cyan]attention[/]  [dim]<sentence>[/]",
+        "show which words attend to which (saves heatmap)",
+    ),
+    (
+        "[bold cyan]fill[/]       [dim]<sentence with [MASK]>[/]",
+        "fill in [MASK] using BERT",
+    ),
     ("[bold cyan]help[/]", "show this message"),
     ("[bold cyan]quit[/]", "exit"),
 ]
@@ -50,6 +62,8 @@ def score_bar(score: float, width: int = 20) -> Text:
 
 # ── Lazy model loading ──────────────────────────────────────
 
+_smollm_tokenizer = None
+_smollm_model = None
 _gpt2_tokenizer = None
 _gpt2_model = None
 _bert_tokenizer = None
@@ -60,6 +74,7 @@ def get_gpt2():
     global _gpt2_tokenizer, _gpt2_model
     if _gpt2_tokenizer is None:
         from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
         console.print("[dim]Loading GPT-2...[/]")
         _gpt2_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         _gpt2_model = GPT2LMHeadModel.from_pretrained("gpt2")
@@ -67,18 +82,36 @@ def get_gpt2():
     return _gpt2_tokenizer, _gpt2_model
 
 
+def get_smollm():
+    global _smollm_tokenizer, _smollm_model
+    if _smollm_tokenizer is None:
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+
+        console.print("[dim]Loading SmolLM...[/]")
+        _smollm_tokenizer = AutoTokenizer.from_pretrained("HuggingFaceTB/SmolLM-135M")
+        _smollm_model = AutoModelForCausalLM.from_pretrained(
+            "HuggingFaceTB/SmolLM-135M"
+        )
+        _smollm_model.eval()
+    return _smollm_tokenizer, _smollm_model
+
+
 def get_bert():
     global _bert_tokenizer, _bert_model
     if _bert_tokenizer is None:
         from transformers import BertTokenizer, BertModel
+
         console.print("[dim]Loading BERT...[/]")
         _bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        _bert_model = BertModel.from_pretrained("bert-base-uncased", output_attentions=True)
+        _bert_model = BertModel.from_pretrained(
+            "bert-base-uncased", output_attentions=True
+        )
         _bert_model.eval()
     return _bert_tokenizer, _bert_model
 
 
 # ── Commands ────────────────────────────────────────────────
+
 
 def cmd_generate(args: list[str]) -> None:
     if not args:
@@ -86,7 +119,8 @@ def cmd_generate(args: list[str]) -> None:
         return
 
     prompt_text = " ".join(args)
-    tokenizer, model = get_gpt2()
+    # tokenizer, model = get_gpt2()
+    tokenizer, model = get_smollm()
     inputs = tokenizer(prompt_text, return_tensors="pt")
 
     console.print(f"\n  [bold]Prompt:[/] {prompt_text}\n")
@@ -94,7 +128,7 @@ def cmd_generate(args: list[str]) -> None:
         with torch.no_grad():
             output = model.generate(
                 **inputs,
-                max_new_tokens=30,
+                max_new_tokens=512,
                 temperature=temp,
                 do_sample=True,
                 pad_token_id=tokenizer.eos_token_id,
@@ -111,7 +145,8 @@ def cmd_predict(args: list[str]) -> None:
         return
 
     prompt_text = " ".join(args)
-    tokenizer, model = get_gpt2()
+    # tokenizer, model = get_gpt2()
+    tokenizer, model = get_smollm()
     inputs = tokenizer(prompt_text, return_tensors="pt")
 
     with torch.no_grad():
@@ -121,7 +156,7 @@ def cmd_predict(args: list[str]) -> None:
     probs = torch.softmax(logits, dim=0)
     top_probs, top_indices = torch.topk(probs, 10)
 
-    table = Table(title=f"Next token after: \"{prompt_text}\"", border_style="blue")
+    table = Table(title=f'Next token after: "{prompt_text}"', border_style="blue")
     table.add_column("#", style="dim", width=3)
     table.add_column("Token", style="bold")
     table.add_column("Probability")
@@ -164,9 +199,17 @@ def cmd_attention(args: list[str]) -> None:
     try:
         import matplotlib.pyplot as plt
         import seaborn as sns
+
         fig, ax = plt.subplots(figsize=(10, 8))
-        sns.heatmap(attention, xticklabels=tokens, yticklabels=tokens, cmap="Blues", ax=ax, square=True)
-        ax.set_title(f"Attention: \"{sentence}\"")
+        sns.heatmap(
+            attention,
+            xticklabels=tokens,
+            yticklabels=tokens,
+            cmap="Blues",
+            ax=ax,
+            square=True,
+        )
+        ax.set_title(f'Attention: "{sentence}"')
         plt.tight_layout()
         plt.savefig("attention_heatmap.png", dpi=150)
         plt.close()
@@ -188,10 +231,13 @@ def cmd_fill(args: list[str]) -> None:
 
     # Use a fill-mask pipeline
     from transformers import pipeline
+
     filler = pipeline("fill-mask", model="bert-base-uncased")
     results = filler(sentence.replace("[MASK]", "[MASK]").replace("[mask]", "[MASK]"))
 
-    table = Table(title=f"Predictions for [MASK] in: \"{sentence}\"", border_style="magenta")
+    table = Table(
+        title=f'Predictions for [MASK] in: "{sentence}"', border_style="magenta"
+    )
     table.add_column("#", style="dim", width=3)
     table.add_column("Token", style="bold")
     table.add_column("Score")
@@ -210,6 +256,7 @@ COMMANDS = {
 
 
 # ── Main ────────────────────────────────────────────────────
+
 
 def main() -> None:
     console.print(

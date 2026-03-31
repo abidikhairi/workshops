@@ -10,7 +10,7 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
-def generate(prompt: str, temperature: float = 1.0, max_new_tokens: int = 40) -> str:
+def generate(prompt: str, temperature: float = 1.0, max_new_tokens: int = 128) -> str:
     """Generate text from a prompt using GPT-2."""
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     model = GPT2LMHeadModel.from_pretrained("gpt2")
@@ -30,12 +30,16 @@ def generate(prompt: str, temperature: float = 1.0, max_new_tokens: int = 40) ->
 
 def demo_temperature(prompt: str) -> None:
     """Show how temperature affects generation."""
-    print(f"Prompt: \"{prompt}\"\n")
+    print(f'Prompt: "{prompt}"\n')
     print("=" * 70)
 
     for temp in [0.3, 1.0, 1.5]:
         text = generate(prompt, temperature=temp)
-        label = {0.3: "Low (0.3) — safe/repetitive", 1.0: "Medium (1.0) — balanced", 1.5: "High (1.5) — creative/wild"}
+        label = {
+            0.3: "Low (0.3) — safe/repetitive",
+            1.0: "Medium (1.0) — balanced",
+            1.5: "High (1.5) — creative/wild",
+        }
         print(f"\n[Temperature {label[temp]}]")
         print(text)
         print("-" * 70)
@@ -56,12 +60,12 @@ def demo_next_token_probabilities(prompt: str, top_k: int = 10) -> None:
     probs = torch.softmax(logits, dim=0)
     top_probs, top_indices = torch.topk(probs, top_k)
 
-    print(f"\nPrompt: \"{prompt}\"")
+    print(f'\nPrompt: "{prompt}"')
     print(f"Top {top_k} next-token predictions:\n")
     for i, (prob, idx) in enumerate(zip(top_probs, top_indices)):
         token = tokenizer.decode([idx])
         bar = "█" * int(prob.item() * 50) + "░" * (50 - int(prob.item() * 50))
-        print(f"  {i+1:2d}. {token:15s} {bar} {prob.item():.3f}")
+        print(f"  {i + 1:2d}. {token:15s} {bar} {prob.item():.3f}")
 
 
 if __name__ == "__main__":
