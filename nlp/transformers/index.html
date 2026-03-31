@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+		/>
+
+		<title>Session 2 — Transformers & GPT Architecture</title>
+
+		<link rel="stylesheet" href="dist/reset.css" />
+		<link rel="stylesheet" href="dist/reveal.css" />
+		<link rel="stylesheet" href="dist/theme/black.css" />
+		<link rel="stylesheet" href="dist/plugin/highlight/monokai.css" />
+		<link rel="stylesheet" href="css/custom.css" />
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+				<!-- ==================== TITLE ==================== -->
+				<section>
+					<h1>Transformers & GPT</h1>
+					<h3>Session 2</h3>
+					<p class="subtitle">From Attention to Generation</p>
+					<aside class="notes">
+						Welcome back. Last session we went from language to word vectors.
+						Today we build the engine that powers ChatGPT, BERT, and every
+						modern language model. No ML background needed — just Session 1.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 1: RECAP OF SESSION 1 ==================== -->
+				<section>
+					<section>
+						<h2>The Story So Far</h2>
+						<ol>
+							<li class="fragment"><strong>Language</strong> = structured system with syntax, semantics, pragmatics</li>
+							<li class="fragment"><strong>Pipeline:</strong> Text &rarr; Tokenize &rarr; Clean &rarr; Represent &rarr; <strong>Model</strong> &rarr; Output</li>
+							<li class="fragment"><strong>One-hot encoding</strong> = blind to meaning ($d(\text{cat}, \text{dog}) = d(\text{cat}, \text{democracy})$)</li>
+							<li class="fragment"><strong>Word2Vec:</strong> learned dense vectors from context &mdash; <em>king &minus; man + woman &asymp; queen</em></li>
+						</ol>
+						<div class="fragment highlight-box" style="margin-top: 1em;">
+							Today we tackle the <strong>Model</strong> step &mdash; the part that actually understands and generates language
+						</div>
+						<aside class="notes">
+							Quick recap — don't linger. Students who were in Session 1 will
+							recognize these. Students who weren't get enough context to follow.
+						</aside>
+					</section>
+
+					<section>
+						<h3>The Open Problem</h3>
+						<p class="fragment">Word2Vec gives every word <strong>one fixed vector</strong> regardless of context</p>
+						<div class="two-col fragment" style="margin-top: 1em;">
+							<div class="col">
+								<div class="example-card">
+									"I went to the <strong>bank</strong>"
+									<br/><span class="small">Financial institution</span>
+								</div>
+							</div>
+							<div class="col">
+								<div class="example-card">
+									"Sitting on the river <strong>bank</strong>"
+									<br/><span class="small">Edge of a river</span>
+								</div>
+							</div>
+						</div>
+						<p class="fragment" style="margin-top: 1em;">Word2Vec &rarr; <strong>identical vector</strong> for both</p>
+						<div class="fragment box" style="margin-top: 1em;">
+							<em>Today's question: "How do we build a model that reads the whole sentence before deciding what each word means?"</em>
+						</div>
+						<p class="fragment">The answer is <strong>attention</strong> &mdash; and it changes everything.</p>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 2: THE SEQUENCE PROBLEM ==================== -->
+				<section>
+					<section>
+						<h2>The Sequence Problem</h2>
+						<p class="fragment">Language has order &mdash; and order matters</p>
+						<div class="two-col fragment" style="margin-top: 1em;">
+							<div class="col">
+								<div class="example-card">
+									<p><em>"Dog bites man"</em></p>
+									<p class="small">Routine news story</p>
+								</div>
+							</div>
+							<div class="col">
+								<div class="example-card">
+									<p><em>"Man bites dog"</em></p>
+									<p class="small">Front page headline</p>
+								</div>
+							</div>
+						</div>
+						<p class="fragment highlight-box" style="margin-top: 1em;">
+							Same words, opposite meanings &mdash; a model <strong>must</strong> respect word order
+						</p>
+					</section>
+
+					<section>
+						<h3>The Old Solution: RNNs</h3>
+						<p class="fragment">Recurrent Neural Networks process text <strong>word by word, left to right</strong></p>
+						<div class="fragment pipeline" style="margin-top: 1em;">
+							<span class="pipe-step">The</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">trophy</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">didn't</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">fit</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">...</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">it</span>
+						</div>
+						<p class="fragment" style="margin-top: 1em;">Each step passes a "memory" to the next step</p>
+						<p class="fragment"><strong>Analogy:</strong> reading a book one word at a time and trying to remember everything</p>
+					</section>
+
+					<section>
+						<h3>Why RNNs Fall Short</h3>
+						<div class="fragment box">
+							<em>"The trophy didn't fit in the suitcase because <strong>it</strong> was too big"</em>
+						</div>
+						<ul style="margin-top: 1em;">
+							<li class="fragment">To resolve "it", the model needs to connect back to "trophy" &mdash; far away</li>
+							<li class="fragment">Early words <strong>fade</strong> from memory &mdash; the <strong>vanishing gradient</strong> problem</li>
+							<li class="fragment">Words must be processed <strong>sequentially</strong> &mdash; no parallelism, slow training</li>
+						</ul>
+						<div class="fragment highlight-box" style="margin-top: 1em;">
+							<strong>The insight:</strong> What if the model could <strong>look at all words at once</strong>
+							and decide which ones matter for each position?
+						</div>
+						<aside class="notes">
+							The vanishing gradient means that by the time the model reaches "it",
+							the information about "trophy" has been diluted through many steps.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 3: ATTENTION INTUITION ==================== -->
+				<section>
+					<h2>The Attention Idea</h2>
+					<p class="fragment">For each word, assign a <strong>relevance score</strong> to every other word</p>
+					<p class="fragment">Use those scores to build a new, <strong>context-aware</strong> representation</p>
+					<div class="fragment box" style="margin-top: 1em;">
+						<p>The word "bank" in <em>"river bank"</em> will attend strongly to "river"</p>
+						<p>&rarr; its meaning shifts accordingly</p>
+					</div>
+					<div class="fragment" style="margin-top: 1em;">
+						<h4>Session 1 Connection</h4>
+						<p>Word2Vec <strong>averaged</strong> all contexts into one vector</p>
+						<p>Attention <strong>dynamically selects</strong> the relevant context at each position</p>
+						<p class="highlight-box">Same word, different sentence &rarr; <strong>different representation</strong></p>
+					</div>
+					<aside class="notes">
+						This is the conceptual bridge. Word2Vec was static — attention is dynamic.
+						Make sure students feel the contrast before diving into mechanics.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 4: SELF-ATTENTION DEEP DIVE ==================== -->
+				<section>
+					<section>
+						<h2>Self-Attention Mechanics</h2>
+						<h3>Deep Dive</h3>
+						<aside class="notes">
+							This is the core of the session. Take 20+ minutes here.
+							Build up from intuition to equations step by step.
+						</aside>
+					</section>
+
+					<!-- 4a: Three Roles Intuition -->
+					<section>
+						<h3>Three Roles: Q, K, V</h3>
+						<p class="fragment">Every word plays three roles simultaneously:</p>
+						<div class="three-col" style="margin-top: 1em;">
+							<div class="col fragment">
+								<h4>Query (Q)</h4>
+								<p><em>"What am I looking for?"</em></p>
+							</div>
+							<div class="col fragment">
+								<h4>Key (K)</h4>
+								<p><em>"What do I offer to others?"</em></p>
+							</div>
+							<div class="col fragment">
+								<h4>Value (V)</h4>
+								<p><em>"What info do I actually give?"</em></p>
+							</div>
+						</div>
+						<div class="fragment box" style="margin-top: 1em;">
+							<h4>Library Analogy</h4>
+							<p><strong>Q</strong> = your search query typed into the catalogue</p>
+							<p><strong>K</strong> = the title/tags on each book</p>
+							<p><strong>V</strong> = the actual content of each book</p>
+							<p class="small">Attention = how well your query matches each book's tags &rarr; weighted sum of book contents</p>
+						</div>
+					</section>
+
+					<!-- 4b: How Q, K, V are created -->
+					<section>
+						<h3>Creating Q, K, V &mdash; The Projection</h3>
+						<p class="fragment">Each word starts as an embedding vector $\mathbf{x}_i$ (from Session 1)</p>
+						<p class="fragment">We project it into three separate spaces using <strong>learned weight matrices</strong>:</p>
+						<div class="fragment" style="margin-top: 0.8em;">
+							$$\mathbf{q}_i = W^Q \mathbf{x}_i, \quad \mathbf{k}_i = W^K \mathbf{x}_i, \quad \mathbf{v}_i = W^V \mathbf{x}_i$$
+						</div>
+						<p class="fragment small">where $W^Q, W^K, W^V \in \mathbb{R}^{d_k \times d}$ are weight matrices the model <strong>learns during training</strong></p>
+						<!-- ASCII diagram -->
+						<div class="fragment attn-diagram" style="margin-top: 1em;">
+							<pre class="diagram-pre">
+         x_i (embedding)
+        ╱      |      ╲
+      W_Q     W_K     W_V
+       ↓       ↓       ↓
+      q_i     k_i     v_i
+    (query)  (key)  (value)
+							</pre>
+						</div>
+						<p class="fragment highlight-box">
+							Same word, <strong>three different views</strong> &mdash; the model learns what to ask, what to advertise, and what to share
+						</p>
+						<aside class="notes">
+							Emphasize: Q, K, V are NOT the raw embeddings. They are learned
+							linear projections. The same word becomes three different vectors,
+							each serving a different purpose in the attention mechanism.
+						</aside>
+					</section>
+
+					<!-- 4c: Computing attention scores -->
+					<section>
+						<h3>Step 1: Compute Attention Scores</h3>
+						<p class="fragment">How relevant is word $j$ to word $i$?</p>
+						<p class="fragment">Measure with the <strong>dot product</strong> between query $i$ and key $j$:</p>
+						<div class="fragment">
+							$$\text{score}(i,j) = \mathbf{q}_i \cdot \mathbf{k}_j = \mathbf{q}_i^\top \mathbf{k}_j$$
+						</div>
+						<p class="fragment small">High dot product = vectors point in similar directions = high relevance</p>
+						<div class="fragment" style="margin-top: 1em;">
+							<h4>Example: "The cat sat"</h4>
+							<p class="small">Scores for the word "sat" (as query) against all words (as keys):</p>
+							<table class="score-table" style="margin: 0.5em auto;">
+								<tr>
+									<td></td>
+									<td><strong>The</strong></td>
+									<td><strong>cat</strong></td>
+									<td><strong>sat</strong></td>
+								</tr>
+								<tr>
+									<td><strong>sat (Q)</strong></td>
+									<td>$\mathbf{q}_{\text{sat}} \cdot \mathbf{k}_{\text{The}}$</td>
+									<td>$\mathbf{q}_{\text{sat}} \cdot \mathbf{k}_{\text{cat}}$</td>
+									<td>$\mathbf{q}_{\text{sat}} \cdot \mathbf{k}_{\text{sat}}$</td>
+								</tr>
+								<tr class="fragment">
+									<td></td>
+									<td>= 2.0</td>
+									<td>= 8.5</td>
+									<td>= 3.1</td>
+								</tr>
+							</table>
+						</div>
+						<p class="fragment small">"cat" scores highest &mdash; most relevant to "sat"</p>
+					</section>
+
+					<!-- 4d: Scaling -->
+					<section>
+						<h3>Step 2: Scale the Scores</h3>
+						<p class="fragment">Raw dot products can be <strong>very large</strong> when vectors are high-dimensional</p>
+						<p class="fragment">Large values &rarr; softmax outputs become almost 0 or 1 &rarr; <strong>gradients vanish</strong></p>
+						<div class="fragment" style="margin-top: 0.8em;">
+							<p>Fix: divide by $\sqrt{d_k}$ (the dimension of key vectors):</p>
+							$$\text{scaled\_score}(i,j) = \frac{\mathbf{q}_i \cdot \mathbf{k}_j}{\sqrt{d_k}}$$
+						</div>
+						<div class="fragment box" style="margin-top: 0.8em;">
+							<h4>Continuing our example ($d_k = 64$, so $\sqrt{d_k} = 8$)</h4>
+							<table class="score-table" style="margin: 0.3em auto;">
+								<tr>
+									<td></td>
+									<td><strong>The</strong></td>
+									<td><strong>cat</strong></td>
+									<td><strong>sat</strong></td>
+								</tr>
+								<tr>
+									<td><strong>Raw scores</strong></td>
+									<td>2.0</td>
+									<td>8.5</td>
+									<td>3.1</td>
+								</tr>
+								<tr>
+									<td><strong>÷ $\sqrt{64}$ = 8</strong></td>
+									<td>0.25</td>
+									<td>1.06</td>
+									<td>0.39</td>
+								</tr>
+							</table>
+						</div>
+						<p class="fragment small">Think of it as keeping numbers in a comfortable range for the next step</p>
+						<aside class="notes">
+							If d_k = 64, random dot products have variance ~64.
+							Dividing by sqrt(64) = 8 brings variance back to ~1.
+							This is why it's called "scaled" dot-product attention.
+						</aside>
+					</section>
+
+					<!-- 4e: Softmax -->
+					<section>
+						<h3>Step 3: Softmax &rarr; Attention Weights</h3>
+						<p class="fragment">Convert scaled scores into a <strong>probability distribution</strong> (weights that sum to 1):</p>
+						<div class="fragment">
+							$$\alpha_{ij} = \text{softmax}_j\!\left(\frac{\mathbf{q}_i \cdot \mathbf{k}_j}{\sqrt{d_k}}\right) = \frac{\exp\!\left(\frac{\mathbf{q}_i \cdot \mathbf{k}_j}{\sqrt{d_k}}\right)}{\displaystyle\sum_{l=1}^{n} \exp\!\left(\frac{\mathbf{q}_i \cdot \mathbf{k}_l}{\sqrt{d_k}}\right)}$$
+						</div>
+						<div class="fragment box" style="margin-top: 0.8em;">
+							<h4>Continuing our example</h4>
+							<table class="score-table" style="margin: 0.3em auto;">
+								<tr>
+									<td></td>
+									<td><strong>The</strong></td>
+									<td><strong>cat</strong></td>
+									<td><strong>sat</strong></td>
+								</tr>
+								<tr>
+									<td>Scaled scores</td>
+									<td>0.25</td>
+									<td>1.06</td>
+									<td>0.39</td>
+								</tr>
+								<tr>
+									<td>$e^{\text{score}}$</td>
+									<td>1.28</td>
+									<td>2.89</td>
+									<td>1.48</td>
+								</tr>
+								<tr class="fragment" style="color: #42affa; font-weight: bold;">
+									<td>$\alpha$ (weights)</td>
+									<td>0.23</td>
+									<td><strong>0.51</strong></td>
+									<td>0.26</td>
+								</tr>
+							</table>
+						</div>
+						<p class="fragment small">Sum = 0.23 + 0.51 + 0.26 = 1.0 &nbsp; &mdash; &nbsp; "sat" pays <strong>51% of its attention</strong> to "cat"</p>
+						<aside class="notes">
+							The softmax is the same function from Session 1 (Word2Vec).
+							Remind students: it turns any list of numbers into percentages.
+						</aside>
+					</section>
+
+					<!-- 4f: Weighted sum -->
+					<section>
+						<h3>Step 4: Weighted Sum of Values</h3>
+						<p class="fragment">Multiply each word's value vector by its attention weight, then <strong>sum</strong>:</p>
+						<div class="fragment">
+							$$\mathbf{z}_i = \sum_{j=1}^{n} \alpha_{ij} \, \mathbf{v}_j$$
+						</div>
+						<div class="fragment box" style="margin-top: 0.8em;">
+							<h4>For "sat":</h4>
+							$$\mathbf{z}_{\text{sat}} = 0.23 \cdot \mathbf{v}_{\text{The}} + \underbrace{0.51 \cdot \mathbf{v}_{\text{cat}}}_{\text{largest contribution}} + 0.26 \cdot \mathbf{v}_{\text{sat}}$$
+						</div>
+						<div class="fragment highlight-box" style="margin-top: 0.8em;">
+							$\mathbf{z}_{\text{sat}}$ is a new vector that <strong>blends information from the entire sentence</strong>,
+							dominated by "cat" &mdash; the most relevant word
+						</div>
+						<p class="fragment small">This is why it's called <em>attention</em> &mdash; the model attends to what matters and ignores the rest</p>
+					</section>
+
+					<!-- 4g: Full flow diagram -->
+					<section>
+						<h3>The Full Attention Flow</h3>
+						<div class="fragment attn-diagram">
+							<pre class="diagram-pre">
+  Input: x₁, x₂, ..., xₙ  (token embeddings)
+         │   │        │
+    ┌────┴───┴────────┴────────┐
+    │   Linear projections     │
+    │   Q = XW_Q               │
+    │   K = XW_K               │
+    │   V = XW_V               │
+    └────┬───┬────────┬────────┘
+         │   │        │
+         Q   K        V
+         │   │        │
+    ┌────┴───┴────┐   │
+    │  Q · K^T    │   │     ← dot product (similarity)
+    │  ÷ √d_k    │   │     ← scale
+    │  softmax    │   │     ← normalize to weights
+    └──────┬──────┘   │
+           │          │
+         weights      V
+           │          │
+    ┌──────┴──────────┴──┐
+    │  weights × V       │  ← weighted sum
+    └────────┬───────────┘
+             │
+    Output: z₁, z₂, ..., zₙ  (context-aware vectors)
+							</pre>
+						</div>
+						<aside class="notes">
+							Walk through the diagram top to bottom.
+							This is the single most important diagram of the session.
+						</aside>
+					</section>
+
+					<!-- 4h: The master equation -->
+					<section>
+						<h3>The Master Equation</h3>
+						<p class="fragment">Everything on the previous slides, in one formula:</p>
+						<div class="fragment" style="margin-top: 1em;">
+							$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V$$
+						</div>
+						<p class="fragment small" style="margin-top: 1em;">where $Q, K, V \in \mathbb{R}^{n \times d_k}$ are the matrices of all queries, keys, and values stacked together</p>
+						<div class="fragment" style="margin-top: 1em;">
+							<h4>What each piece does:</h4>
+							<table class="eq-breakdown" style="margin: 0.5em auto;">
+								<tr class="fragment">
+									<td>$QK^\top$</td>
+									<td>&rarr;</td>
+									<td>$n \times n$ matrix of all pairwise similarity scores</td>
+								</tr>
+								<tr class="fragment">
+									<td>$\div \sqrt{d_k}$</td>
+									<td>&rarr;</td>
+									<td>stabilize the scale</td>
+								</tr>
+								<tr class="fragment">
+									<td>softmax</td>
+									<td>&rarr;</td>
+									<td>normalize each row to attention weights</td>
+								</tr>
+								<tr class="fragment">
+									<td>$\times V$</td>
+									<td>&rarr;</td>
+									<td>weighted combination of value vectors</td>
+								</tr>
+							</table>
+						</div>
+						<div class="fragment highlight-box" style="margin-top: 0.8em;">
+							This is the equation from <em>"Attention Is All You Need"</em> (Vaswani et al., 2017)
+						</div>
+					</section>
+
+					<!-- 4i: Worked numerical example -->
+					<section>
+						<h3>Worked Example &mdash; Tiny Numbers</h3>
+						<p class="small">Sentence: "I love NLP" &mdash; using $d_k = 2$ for simplicity</p>
+						<div class="fragment" style="margin-top: 0.5em;">
+							<p class="small"><strong>After projection</strong> (made-up values for illustration):</p>
+							$$Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix}, \quad
+							K = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}, \quad
+							V = \begin{bmatrix} 1 & 2 \\ 3 & 4 \\ 5 & 6 \end{bmatrix}$$
+						</div>
+						<div class="fragment" style="margin-top: 0.5em;">
+							<p class="small"><strong>Step 1 &amp; 2:</strong> $\frac{QK^\top}{\sqrt{2}}$</p>
+							$$QK^\top = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \\ 2 & 1 & 1 \end{bmatrix}
+							\xrightarrow{\div \sqrt{2}}
+							\begin{bmatrix} 0.71 & 0 & 0.71 \\ 0.71 & 0.71 & 0 \\ 1.41 & 0.71 & 0.71 \end{bmatrix}$$
+						</div>
+						<div class="fragment" style="margin-top: 0.5em;">
+							<p class="small"><strong>Step 3:</strong> Softmax each row (showing row 3: "NLP")</p>
+							$$\text{softmax}([1.41,\; 0.71,\; 0.71]) = [0.49,\; 0.26,\; 0.26]$$
+						</div>
+						<div class="fragment" style="margin-top: 0.5em;">
+							<p class="small"><strong>Step 4:</strong> Output for "NLP"</p>
+							$$\mathbf{z}_{\text{NLP}} = 0.49 \cdot \begin{bmatrix}1\\2\end{bmatrix} + 0.26 \cdot \begin{bmatrix}3\\4\end{bmatrix} + 0.26 \cdot \begin{bmatrix}5\\6\end{bmatrix} = \begin{bmatrix}2.57\\3.58\end{bmatrix}$$
+						</div>
+						<aside class="notes">
+							This is a full concrete walkthrough. Students can reproduce it with
+							a calculator. The point: no magic, just matrix multiplication and softmax.
+						</aside>
+					</section>
+
+					<!-- 4j: Why this solves the problem -->
+					<section>
+						<h3>Why This Solves the Word2Vec Problem</h3>
+						<div class="two-col" style="margin-top: 1em;">
+							<div class="col fragment">
+								<div class="example-card">
+									<p><em>"river <strong>bank</strong>"</em></p>
+									<p class="small">$\alpha_{\text{bank,river}}$ is high</p>
+									<p class="small">&rarr; $\mathbf{z}_{\text{bank}}$ absorbs "river" info</p>
+									<p class="small">&rarr; shifts toward water/geography</p>
+								</div>
+							</div>
+							<div class="col fragment">
+								<div class="example-card">
+									<p><em>"savings <strong>bank</strong>"</em></p>
+									<p class="small">$\alpha_{\text{bank,savings}}$ is high</p>
+									<p class="small">&rarr; $\mathbf{z}_{\text{bank}}$ absorbs "savings" info</p>
+									<p class="small">&rarr; shifts toward finance</p>
+								</div>
+							</div>
+						</div>
+						<p class="fragment" style="margin-top: 1em;">Same input embedding $\mathbf{x}_{\text{bank}}$, but <strong>different output $\mathbf{z}_{\text{bank}}$</strong> depending on context</p>
+						<div class="fragment highlight-box">
+							Static embeddings (Session 1): one vector per word, forever<br/>
+							Self-attention (Session 2): <strong>a new vector per word, per sentence</strong>
+						</div>
+					</section>
+
+					<!-- 4k: Demo -->
+					<section>
+						<h3>Demo &mdash; Visualizing Attention</h3>
+						<pre><code class="python" data-trim data-noescape data-line-numbers="|1-4|6-7|9-12|14-15|17-19">
+from transformers import BertTokenizer, BertModel
+import torch
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased', output_attentions=True)
+
+sentence = "The trophy didn't fit because it was too big"
+inputs = tokenizer(sentence, return_tensors='pt')
+with torch.no_grad():
+    outputs = model(**inputs)
+
+# Extract attention from layer 0, head 0
+attention = outputs.attentions[0][0, 0].numpy()
+
+tokens = tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])
+plt.figure(figsize=(10, 8))
+sns.heatmap(attention, xticklabels=tokens, yticklabels=tokens, cmap='Blues')
+						</code></pre>
+						<p class="fragment small" style="margin-top: 0.5em;">
+							The heatmap is exactly the $\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)$ matrix we derived!
+						</p>
+						<p class="fragment small">
+							Look at the "it" row &mdash; "trophy" lights up &rarr; $\alpha_{\text{it,trophy}}$ is high
+						</p>
+						<aside class="notes">
+							This is the highlight demo. Give it space.
+							The heatmap IS the attention weight matrix.
+							Each row is one word's attention distribution over all other words.
+							Connect it directly to the equations they just saw.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 5: MULTI-HEAD ATTENTION ==================== -->
+				<section>
+					<h2>Multi-Head Attention</h2>
+					<p class="fragment"><strong>One attention head</strong> = one perspective, one "question" about each word</p>
+					<p class="fragment">But language has multiple dimensions of relationships:</p>
+					<div class="three-col fragment" style="margin-top: 0.8em;">
+						<div class="col">
+							<h4>Syntactic</h4>
+							<p class="small">subject &rarr; verb</p>
+						</div>
+						<div class="col">
+							<h4>Semantic</h4>
+							<p class="small">pronoun &rarr; antecedent</p>
+						</div>
+						<div class="col">
+							<h4>Positional</h4>
+							<p class="small">nearby words</p>
+						</div>
+					</div>
+					<div class="fragment" style="margin-top: 1em;">
+						<p><strong>Multi-head attention</strong> = run attention in parallel, multiple times</p>
+						<p class="small">Each head learns to focus on a different type of relationship</p>
+					</div>
+					<div class="fragment box" style="margin-top: 0.8em;">
+						<strong>Analogy:</strong> instead of one expert reviewing a document, you have a committee &mdash;
+						each reads for something different, then they combine their findings
+					</div>
+				</section>
+
+				<!-- ==================== SLIDE 6: POSITIONAL ENCODING ==================== -->
+				<section>
+					<h2>Positional Encoding</h2>
+					<p class="fragment">Self-attention looks at all words simultaneously &mdash; <strong>no built-in sense of order</strong></p>
+					<div class="fragment box" style="margin-top: 0.8em;">
+						<strong>Problem:</strong> without fixing this, "dog bites man" = "man bites dog"
+						<br/><span class="small">Same attention scores, different order</span>
+					</div>
+					<div class="fragment" style="margin-top: 1em;">
+						<h4>The Fix</h4>
+						<p>Before feeding tokens in, <strong>add a position signal</strong> to each token's embedding</p>
+						<p class="small">Think of it as stamping each word with its seat number before entering a lecture hall</p>
+					</div>
+					<div class="fragment highlight-box" style="margin-top: 1em;">
+						<strong>Session 1 connection:</strong> Word2Vec embeddings captured <em>meaning</em>
+						<br/>Positional encodings add <em>location</em> &mdash; the Transformer needs both
+					</div>
+					<aside class="notes">
+						Keep this brief — the intuition is enough.
+						Students don't need to see the sinusoidal formula.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 7: TRANSFORMER ARCHITECTURE ==================== -->
+				<section>
+					<section>
+						<h2>The Transformer Architecture</h2>
+						<div class="box">
+							<em>"Attention Is All You Need"</em> &mdash; Vaswani et al., Google, 2017
+						</div>
+						<p class="fragment" style="margin-top: 1em;">Replaced RNNs almost entirely within two years</p>
+						<aside class="notes">
+							The title of the paper became one of the most famous in ML history.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Two Building Blocks</h3>
+						<div class="two-col" style="margin-top: 1em;">
+							<div class="col fragment">
+								<div class="example-card">
+									<h4>Encoder</h4>
+									<p>Reads and <strong>understands</strong> input text</p>
+									<p class="small">Produces rich contextual representations</p>
+								</div>
+							</div>
+							<div class="col fragment">
+								<div class="example-card">
+									<h4>Decoder</h4>
+									<p><strong>Generates</strong> output text token by token</p>
+									<p class="small">Attends to the encoder's output</p>
+								</div>
+							</div>
+						</div>
+						<div class="fragment" style="margin-top: 1.5em;">
+							<h4>One Transformer Layer = Two Sub-layers</h4>
+							<div class="pipeline">
+								<span class="pipe-step">Multi-Head Self-Attention</span>
+								<span class="pipe-arrow">&rarr;</span>
+								<span class="pipe-step">Feed-Forward Network</span>
+							</div>
+							<p class="small" style="margin-top: 0.5em;">Let every word look at every other word, then process each independently</p>
+						</div>
+					</section>
+
+					<section>
+						<h3>Depth = Abstraction</h3>
+						<p class="fragment">Stack many layers &mdash; each builds higher-level understanding</p>
+						<div class="layer-stack fragment" style="margin-top: 1em;">
+							<div class="layer-item layer-deep">Deep layers: abstract reasoning, discourse structure</div>
+							<div class="layer-item layer-mid">Middle layers: semantic relationships, coreference</div>
+							<div class="layer-item layer-shallow">Layer 1: basic syntactic patterns (subject/verb agreement)</div>
+						</div>
+						<p class="fragment small" style="margin-top: 1em;">
+							BERT has 12 layers, GPT-3 has 96 layers, GPT-4 is estimated to have even more
+						</p>
+					</section>
+
+					<section>
+						<h3>Three Model Families</h3>
+						<table class="model-table" style="margin: 1em auto;">
+							<tr>
+								<td><strong>Model</strong></td>
+								<td><strong>Architecture</strong></td>
+								<td><strong>Used For</strong></td>
+							</tr>
+							<tr class="fragment">
+								<td><strong>BERT</strong></td>
+								<td>Encoder only</td>
+								<td>Understanding (classification, Q&A)</td>
+							</tr>
+							<tr class="fragment">
+								<td><strong>GPT</strong></td>
+								<td>Decoder only</td>
+								<td>Generation (text, code, conversation)</td>
+							</tr>
+							<tr class="fragment">
+								<td><strong>T5, BART</strong></td>
+								<td>Encoder + Decoder</td>
+								<td>Translation, summarization</td>
+							</tr>
+						</table>
+						<aside class="notes">
+							These three families cover nearly all modern NLP.
+							We'll focus on GPT (decoder-only) for the deep dive.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 8: GPT INTERNALS ==================== -->
+				<section>
+					<section>
+						<h2>GPT Architecture</h2>
+						<h3>Deep Dive</h3>
+						<p class="fragment"><strong>GPT</strong> = <strong>G</strong>enerative <strong>P</strong>re-trained <strong>T</strong>ransformer</p>
+						<p class="fragment">Decoder-only stack with <strong>causal (masked) self-attention</strong></p>
+						<aside class="notes">
+							This is the second deep-dive section. Take 20 minutes here.
+						</aside>
+					</section>
+
+					<section>
+						<h3>What Makes GPT a Decoder?</h3>
+						<p class="fragment">Key constraint: each token can only attend to tokens <strong>before</strong> it &mdash; never the future</p>
+						<div class="two-col fragment" style="margin-top: 1em;">
+							<div class="col">
+								<div class="example-card">
+									<h4>BERT (Encoder)</h4>
+									<p class="small">Sees the full sentence in both directions</p>
+									<p class="small">"The [MASK] sat on the mat"</p>
+								</div>
+							</div>
+							<div class="col">
+								<div class="example-card">
+									<h4>GPT (Decoder)</h4>
+									<p class="small">Can only look left &mdash; no peeking ahead</p>
+									<p class="small">"The cat sat ___"</p>
+								</div>
+							</div>
+						</div>
+						<div class="fragment highlight-box" style="margin-top: 1em;">
+							<strong>Why?</strong> GPT is trained to predict the next word &mdash; looking ahead would be cheating
+						</div>
+					</section>
+
+					<section>
+						<h3>Layer-by-Layer Anatomy</h3>
+						<pre><code class="text" data-trim data-noescape data-line-numbers="|1-2|3-4|5-6|7-11|12-13|14-15|16-17">
+Input text: "The cat sat"
+       &darr;
+[1] Token Embedding      &larr; look up each token's vector
+       &darr;                   (learned, like Word2Vec)
+[2] Positional Encoding  &larr; add position signal
+       &darr;
+[3] &times; N Transformer Blocks:
+    &boxvr; Masked Multi-Head Self-Attention
+    &boxvr; Layer Normalization
+    &boxvr; Feed-Forward Network
+    &boxur; Layer Normalization
+       &darr;
+[4] Output Projection    &larr; map to vocabulary size
+       &darr;
+[5] Softmax              &larr; probability over all words
+       &darr;
+Predicted next token: "on" (0.43), "near" (0.12), ...
+						</code></pre>
+						<p class="fragment small">
+							Step [1] = Session 1's Word2Vec job, but learned jointly with everything else
+						</p>
+						<aside class="notes">
+							Walk through each step. Connect [1] to Word2Vec from Session 1,
+							[2] to positional encoding from Slide 6, [5] to softmax from Session 1.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Autoregressive Generation</h3>
+						<p class="fragment">GPT generates <strong>one token at a time</strong>, appending each before predicting the next</p>
+						<div class="fragment pipeline" style="margin-top: 1em;">
+							<span class="pipe-step">"The"</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">"cat"</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">"sat"</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">"on"</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">"the"</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">"mat"</span>
+						</div>
+						<div class="fragment" style="margin-top: 1.5em;">
+							<h4>Temperature</h4>
+							<div class="two-col">
+								<div class="col">
+									<div class="example-card">
+										<p><strong>Low (0.1)</strong></p>
+										<p class="small">Always picks most likely token</p>
+										<p class="small">Repetitive, safe</p>
+									</div>
+								</div>
+								<div class="col">
+									<div class="example-card">
+										<p><strong>High (1.5)</strong></p>
+										<p class="small">Samples more randomly</p>
+										<p class="small">Creative, sometimes incoherent</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<p class="fragment highlight-box" style="margin-top: 1em;">
+							The model has no "plan" &mdash; it just keeps predicting the next most likely token
+						</p>
+					</section>
+
+					<section>
+						<h3>Demo &mdash; GPT Text Generation</h3>
+						<pre><code class="python" data-trim data-noescape data-line-numbers="|1-2|4-5|7-8|10-18">
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+import torch
+
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+model = GPT2LMHeadModel.from_pretrained('gpt2')
+
+prompt = "Natural language processing allows computers to"
+inputs = tokenizer(prompt, return_tensors='pt')
+
+# Generate with different temperatures
+for temp in [0.3, 1.0, 1.5]:
+    output = model.generate(
+        **inputs,
+        max_new_tokens=30,
+        temperature=temp,
+        do_sample=True,
+        pad_token_id=tokenizer.eos_token_id
+    )
+    generated = tokenizer.decode(output[0], skip_special_tokens=True)
+    print(f"\n[Temperature {temp}]")
+    print(generated)
+						</code></pre>
+						<p class="fragment small" style="margin-top: 0.5em;">
+							<strong>Ask students:</strong> Which temperature for a legal document? For a creative story?
+						</p>
+						<aside class="notes">
+							Run three times with the same prompt but different temperatures.
+							Show the difference live. The model doesn't know the prompt is about NLP —
+							it's purely predicting likely continuations.
+							Have 2-3 prompts ready. pip install transformers torch
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 9: PRE-TRAINING & FINE-TUNING ==================== -->
+				<section>
+					<section>
+						<h2>Pre-training & Fine-tuning</h2>
+						<aside class="notes">
+							This section explains how models go from random weights to
+							ChatGPT. Take 10 minutes here.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Pre-training: Learning Language</h3>
+						<p class="fragment">Train GPT on <strong>massive unlabeled text</strong>: Wikipedia, books, Common Crawl</p>
+						<p class="fragment">Objective: predict the next word &mdash; forces the model to learn grammar, facts, reasoning</p>
+						<p class="fragment"><strong>No human labels needed</strong> &mdash; the text itself is the supervision signal</p>
+						<div class="fragment box" style="margin-top: 1em;">
+							<h4>Session 1 Connection</h4>
+							<p>Word2Vec learned from co-occurrence in a <strong>local window</strong></p>
+							<p>GPT pre-training learns from next-word prediction across <strong>entire documents</strong></p>
+							<p class="small">Same core intuition &mdash; <em>"meaning comes from context"</em> &mdash; applied at massive scale</p>
+						</div>
+					</section>
+
+					<section>
+						<h3>Fine-tuning: Specializing</h3>
+						<p class="fragment">Take the pre-trained model &rarr; continue training on a <strong>small, task-specific</strong> dataset</p>
+						<ul style="margin-top: 0.5em;">
+							<li class="fragment"><strong>Medical Q&A:</strong> fine-tune on doctor-patient dialogues</li>
+							<li class="fragment"><strong>Sentiment analysis:</strong> fine-tune on product reviews with star ratings</li>
+							<li class="fragment"><strong>Code generation:</strong> fine-tune on GitHub repositories</li>
+						</ul>
+						<div class="fragment box" style="margin-top: 1em;">
+							<h4>Analogy</h4>
+							<p><strong>Pre-training</strong> = 20 years of school and reading &rarr; broad knowledge</p>
+							<p><strong>Fine-tuning</strong> = 3 months of on-the-job training &rarr; specialized skill</p>
+							<p class="small">You don't re-learn to read for every new job &mdash; you build on what you know</p>
+						</div>
+					</section>
+
+					<section>
+						<h3>From GPT to ChatGPT</h3>
+						<div class="pipeline fragment">
+							<span class="pipe-step">GPT (pre-trained)</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">Fine-tune on dialogues</span>
+							<span class="pipe-arrow">&rarr;</span>
+							<span class="pipe-step">RLHF</span>
+						</div>
+						<div class="fragment" style="margin-top: 1.5em;">
+							<p><strong>RLHF</strong> = Reinforcement Learning from Human Feedback</p>
+							<ul>
+								<li class="fragment small">Human raters score model responses</li>
+								<li class="fragment small">Train a reward model from those scores</li>
+								<li class="fragment small">Fine-tune GPT to maximize the reward</li>
+							</ul>
+						</div>
+						<div class="fragment highlight-box" style="margin-top: 1em;">
+							This shifts the model from <em>"predict likely text"</em><br/>
+							to <em>"give helpful, honest answers"</em>
+						</div>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 10: FULL PICTURE ==================== -->
+				<section>
+					<section>
+						<h2>The Full Picture</h2>
+						<h3>Session 1 &rarr; Session 2</h3>
+						<div class="journey-flow fragment">
+							<div class="journey-step">
+								<div class="journey-label">Word</div>
+								<div class="journey-desc">language</div>
+							</div>
+							<span class="pipe-arrow">&rarr;</span>
+							<div class="journey-step">
+								<div class="journey-label">Token</div>
+								<div class="journey-desc">unit</div>
+							</div>
+							<span class="pipe-arrow">&rarr;</span>
+							<div class="journey-step">
+								<div class="journey-label">One-Hot</div>
+								<div class="journey-desc">no meaning</div>
+							</div>
+							<span class="pipe-arrow">&rarr;</span>
+							<div class="journey-step">
+								<div class="journey-label">Word2Vec</div>
+								<div class="journey-desc">static meaning</div>
+							</div>
+							<span class="pipe-arrow">&rarr;</span>
+							<div class="journey-step journey-step-highlight">
+								<div class="journey-label">Attention</div>
+								<div class="journey-desc">context-aware</div>
+							</div>
+							<span class="pipe-arrow">&rarr;</span>
+							<div class="journey-step journey-step-highlight">
+								<div class="journey-label">Transformer</div>
+								<div class="journey-desc">deep understanding</div>
+							</div>
+							<span class="pipe-arrow">&rarr;</span>
+							<div class="journey-step journey-step-highlight">
+								<div class="journey-label">GPT / BERT</div>
+								<div class="journey-desc">generate / understand</div>
+							</div>
+						</div>
+					</section>
+
+					<section>
+						<h3>Three Ideas That Connect Everything</h3>
+						<ol>
+							<li class="fragment">
+								<strong>The distributional hypothesis</strong> (Session 1)
+								<p class="small">Meaning comes from context</p>
+							</li>
+							<li class="fragment">
+								<strong>Attention</strong> (Session 2)
+								<p class="small">Dynamically select which context matters for each word</p>
+							</li>
+							<li class="fragment">
+								<strong>Scale</strong> (both sessions)
+								<p class="small">More data + more parameters &rarr; emergent capabilities</p>
+							</li>
+						</ol>
+						<div class="fragment box" style="margin-top: 1em;">
+							<em>BERT, GPT-4, LLaMA, Gemini &mdash; all are variations on these same building blocks</em>
+						</div>
+						<p class="fragment highlight-box" style="margin-top: 0.5em;">
+							The architecture hasn't fundamentally changed since 2017 &mdash; what changed is <strong>scale, data, and training recipes</strong>
+						</p>
+					</section>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="dist/plugin/notes.js"></script>
+		<script src="dist/plugin/markdown.js"></script>
+		<script src="dist/plugin/highlight.js"></script>
+		<script src="dist/plugin/math.js"></script>
+		<script>
+			Reveal.initialize({
+				hash: true,
+				slideNumber: true,
+				transition: 'slide',
+				katex: {
+					version: 'latest',
+					delimiters: [
+						{ left: '$$', right: '$$', display: true },
+						{ left: '$', right: '$', display: false },
+					],
+					ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+				},
+				plugins: [RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX],
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,164 @@
+/* ===== Session 1: NLP & Word Vectors — Custom Styles ===== */
+
+/* Subtitle on title slide */
+.subtitle {
+	font-size: 0.7em;
+	color: #888;
+	margin-top: 0.5em;
+}
+
+/* Quoted / highlighted box */
+.box {
+	background: rgba(255, 255, 255, 0.05);
+	border-left: 4px solid #42affa;
+	padding: 0.6em 1em;
+	margin: 0.5em auto;
+	max-width: 85%;
+	border-radius: 4px;
+}
+
+.highlight-box {
+	background: rgba(66, 175, 250, 0.1);
+	border: 1px solid #42affa;
+	padding: 0.6em 1em;
+	margin: 0.5em auto;
+	max-width: 85%;
+	border-radius: 6px;
+}
+
+/* Two-column layout */
+.two-col {
+	display: flex;
+	gap: 1.5em;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+.two-col .col {
+	flex: 1;
+	max-width: 45%;
+}
+
+/* Three-column layout */
+.three-col {
+	display: flex;
+	gap: 1em;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+.three-col .col {
+	flex: 1;
+	max-width: 30%;
+	background: rgba(255, 255, 255, 0.03);
+	padding: 0.5em;
+	border-radius: 6px;
+}
+
+.three-col .col h4 {
+	color: #42affa;
+	margin-bottom: 0.3em;
+}
+
+/* Example cards */
+.example-card {
+	background: rgba(255, 255, 255, 0.05);
+	padding: 0.6em;
+	border-radius: 6px;
+	margin-top: 0.5em;
+	text-align: center;
+}
+
+/* Small text */
+.small {
+	font-size: 0.65em;
+	color: #999;
+}
+
+.example {
+	font-size: 0.75em;
+	color: #ccc;
+	font-style: italic;
+}
+
+/* Pipeline flow */
+.pipeline {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.3em;
+	margin-top: 1em;
+}
+
+.pipe-step {
+	background: rgba(66, 175, 250, 0.15);
+	border: 1px solid #42affa;
+	padding: 0.4em 0.8em;
+	border-radius: 6px;
+	font-size: 0.8em;
+}
+
+.pipe-arrow {
+	font-size: 1.2em;
+	color: #42affa;
+}
+
+.small-pipeline {
+	margin-top: 0.5em;
+}
+
+.small-pipeline .pipe-step {
+	font-size: 0.65em;
+	padding: 0.3em 0.6em;
+}
+
+.small-pipeline .pipe-arrow {
+	font-size: 0.9em;
+}
+
+/* One-hot encoding table */
+.onehot-table {
+	margin: 0.5em auto;
+	font-size: 0.75em;
+	border-collapse: collapse;
+}
+
+.onehot-table td {
+	padding: 0.3em 0.8em;
+	text-align: center;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.onehot-table .hot {
+	background: rgba(66, 175, 250, 0.3);
+	color: #42affa;
+	font-weight: bold;
+}
+
+/* Co-occurrence table */
+.cooccurrence {
+	margin: 0.5em auto;
+	font-size: 0.75em;
+	border-collapse: collapse;
+}
+
+.cooccurrence td {
+	padding: 0.4em 0.8em;
+	text-align: center;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cooccurrence .check {
+	color: #5cff5c;
+	font-weight: bold;
+	font-size: 1.1em;
+}
+
+/* Blank slot in CBOW example */
+.blank {
+	background: rgba(255, 200, 50, 0.2);
+	border: 1px dashed #ffc832;
+	padding: 0.1em 0.5em;
+	border-radius: 3px;
+}

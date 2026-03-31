@@ -1,0 +1,290 @@
+/* ===== Session 2: Transformers & GPT — Custom Styles ===== */
+
+/* Subtitle on title slide */
+.subtitle {
+	font-size: 0.7em;
+	color: #888;
+	margin-top: 0.5em;
+}
+
+/* Quoted / highlighted box */
+.box {
+	background: rgba(255, 255, 255, 0.05);
+	border-left: 4px solid #42affa;
+	padding: 0.6em 1em;
+	margin: 0.5em auto;
+	max-width: 85%;
+	border-radius: 4px;
+}
+
+.highlight-box {
+	background: rgba(66, 175, 250, 0.1);
+	border: 1px solid #42affa;
+	padding: 0.6em 1em;
+	margin: 0.5em auto;
+	max-width: 85%;
+	border-radius: 6px;
+}
+
+/* Two-column layout */
+.two-col {
+	display: flex;
+	gap: 1.5em;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+.two-col .col {
+	flex: 1;
+	max-width: 45%;
+}
+
+/* Three-column layout */
+.three-col {
+	display: flex;
+	gap: 1em;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+.three-col .col {
+	flex: 1;
+	max-width: 30%;
+	background: rgba(255, 255, 255, 0.03);
+	padding: 0.5em;
+	border-radius: 6px;
+}
+
+.three-col .col h4 {
+	color: #42affa;
+	margin-bottom: 0.3em;
+}
+
+/* Example cards */
+.example-card {
+	background: rgba(255, 255, 255, 0.05);
+	padding: 0.6em;
+	border-radius: 6px;
+	margin-top: 0.5em;
+	text-align: center;
+}
+
+/* Small text */
+.small {
+	font-size: 0.65em;
+	color: #999;
+}
+
+.example {
+	font-size: 0.75em;
+	color: #ccc;
+	font-style: italic;
+}
+
+/* Pipeline flow */
+.pipeline {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.3em;
+	margin-top: 1em;
+}
+
+.pipe-step {
+	background: rgba(66, 175, 250, 0.15);
+	border: 1px solid #42affa;
+	padding: 0.4em 0.8em;
+	border-radius: 6px;
+	font-size: 0.8em;
+}
+
+.pipe-arrow {
+	font-size: 1.2em;
+	color: #42affa;
+}
+
+.small-pipeline {
+	margin-top: 0.5em;
+}
+
+.small-pipeline .pipe-step {
+	font-size: 0.65em;
+	padding: 0.3em 0.6em;
+}
+
+.small-pipeline .pipe-arrow {
+	font-size: 0.9em;
+}
+
+/* Layer stack visualization */
+.layer-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4em;
+	max-width: 70%;
+	margin: 0 auto;
+}
+
+.layer-item {
+	padding: 0.5em 1em;
+	border-radius: 6px;
+	font-size: 0.75em;
+	text-align: center;
+}
+
+.layer-shallow {
+	background: rgba(66, 175, 250, 0.15);
+	border: 1px solid rgba(66, 175, 250, 0.4);
+}
+
+.layer-mid {
+	background: rgba(66, 175, 250, 0.25);
+	border: 1px solid rgba(66, 175, 250, 0.6);
+}
+
+.layer-deep {
+	background: rgba(66, 175, 250, 0.35);
+	border: 1px solid rgba(66, 175, 250, 0.8);
+}
+
+/* Model family table */
+.model-table {
+	font-size: 0.75em;
+	border-collapse: collapse;
+}
+
+.model-table td {
+	padding: 0.5em 1.2em;
+	text-align: left;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.model-table tr:first-child td {
+	background: rgba(66, 175, 250, 0.15);
+}
+
+/* Journey flow — full picture slide */
+.journey-flow {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.3em;
+	margin-top: 1em;
+}
+
+.journey-step {
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	padding: 0.4em 0.6em;
+	border-radius: 6px;
+	text-align: center;
+	min-width: 5em;
+}
+
+.journey-step-highlight {
+	background: rgba(66, 175, 250, 0.15);
+	border: 1px solid #42affa;
+}
+
+.journey-label {
+	font-size: 0.75em;
+	font-weight: bold;
+	color: #42affa;
+}
+
+.journey-desc {
+	font-size: 0.55em;
+	color: #999;
+	margin-top: 0.2em;
+}
+
+/* Attention flow diagram */
+.attn-diagram {
+	max-width: 90%;
+	margin: 0 auto;
+}
+
+.diagram-pre {
+	background: rgba(255, 255, 255, 0.03) !important;
+	border: 1px solid rgba(66, 175, 250, 0.3);
+	border-radius: 6px;
+	padding: 0.6em 1em !important;
+	font-size: 0.55em !important;
+	line-height: 1.4;
+	color: #ccc;
+	text-align: left;
+	font-family: 'Courier New', monospace;
+	white-space: pre;
+	overflow-x: auto;
+}
+
+/* Score tables in attention walkthrough */
+.score-table {
+	margin: 0.3em auto;
+	font-size: 0.7em;
+	border-collapse: collapse;
+}
+
+.score-table td {
+	padding: 0.3em 0.8em;
+	text-align: center;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.score-table tr:first-child td {
+	background: rgba(66, 175, 250, 0.1);
+	font-weight: bold;
+}
+
+/* Equation breakdown table */
+.eq-breakdown {
+	font-size: 0.7em;
+	border-collapse: collapse;
+}
+
+.eq-breakdown td {
+	padding: 0.3em 0.6em;
+	text-align: left;
+	border: none;
+	vertical-align: middle;
+}
+
+.eq-breakdown td:first-child {
+	color: #42affa;
+	font-weight: bold;
+	text-align: right;
+}
+
+.eq-breakdown td:nth-child(2) {
+	color: #666;
+	padding: 0 0.3em;
+}
+
+/* Co-occurrence table (kept for compatibility) */
+.cooccurrence {
+	margin: 0.5em auto;
+	font-size: 0.75em;
+	border-collapse: collapse;
+}
+
+.cooccurrence td {
+	padding: 0.4em 0.8em;
+	text-align: center;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cooccurrence .check {
+	color: #5cff5c;
+	font-weight: bold;
+	font-size: 1.1em;
+}
+
+/* Blank slot in CBOW example (kept for compatibility) */
+.blank {
+	background: rgba(255, 200, 50, 0.2);
+	border: 1px dashed #ffc832;
+	padding: 0.1em 0.5em;
+	border-radius: 3px;
+}

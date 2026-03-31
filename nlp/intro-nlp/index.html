@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+		/>
+
+		<title>Session 1 — NLP & Word Vectors</title>
+
+		<link rel="stylesheet" href="dist/reset.css" />
+		<link rel="stylesheet" href="dist/reveal.css" />
+		<link rel="stylesheet" href="dist/theme/black.css" />
+		<link rel="stylesheet" href="dist/plugin/highlight/monokai.css" />
+		<link rel="stylesheet" href="css/custom.css" />
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+				<!-- ==================== TITLE ==================== -->
+				<section>
+					<h1>NLP & Word Vectors</h1>
+					<h3>Session 1</h3>
+					<p class="subtitle">From Language to Embeddings</p>
+					<aside class="notes">
+						Welcome everyone. Today we go from "what is language" all the way to
+						how machines represent words as numbers. No ML background needed.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 1: WHAT IS A LANGUAGE? ==================== -->
+				<section>
+					<section>
+						<h2>What is a Language?</h2>
+						<p class="fragment">A structured system of communication</p>
+						<p class="fragment">A shared code between minds</p>
+						<div class="fragment box">
+							<em>"A language is a contract. Every speaker agrees on the same symbols and rules."</em>
+						</div>
+						<aside class="notes">
+							Start broad. Language is something every student already uses —
+							ground them before introducing the machine learning challenge.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Three Layers of Language</h3>
+						<div class="three-col">
+							<div class="col fragment">
+								<h4>Syntax</h4>
+								<p>The rules</p>
+								<p class="example">"Cat the sat mat on" ✗</p>
+								<p class="example">"The cat sat on the mat" ✓</p>
+							</div>
+							<div class="col fragment">
+								<h4>Semantics</h4>
+								<p>The meaning</p>
+								<p class="example">"Colorless green ideas sleep furiously"</p>
+								<p class="small">Syntactically valid, semantically odd</p>
+							</div>
+							<div class="col fragment">
+								<h4>Pragmatics</h4>
+								<p>Context & intent</p>
+								<p class="example">"Can you pass the salt?"</p>
+								<p class="small">Not really a yes/no question</p>
+							</div>
+						</div>
+					</section>
+
+					<section>
+						<h3>Languages — Broader Than You Think</h3>
+						<ul>
+							<li class="fragment"><strong>Natural:</strong> Arabic, French, English, Tunisian dialect</li>
+							<li class="fragment"><strong>Formal:</strong> Python, SQL, math notation</li>
+							<li class="fragment"><strong>Other systems:</strong> music notation, sign language, Morse code, emoji</li>
+						</ul>
+						<p class="fragment highlight-box">
+							Computers already "speak" formal languages fluently.<br/>
+							NLP is about bridging the gap to <strong>natural</strong> language.
+						</p>
+					</section>
+
+					<section>
+						<h3>Cool Things About Language</h3>
+						<ul>
+							<li class="fragment">~7,000 living languages — and they encode reality differently
+								<ul><li class="small">Some languages have no "left/right" — only cardinal directions</li></ul>
+							</li>
+							<li class="fragment">Language shapes thought (Sapir-Whorf hypothesis)</li>
+							<li class="fragment">A 3-year-old acquires language effortlessly — machines still struggle</li>
+							<li class="fragment">
+								<em>"I never said she stole my money"</em>
+								<br/><span class="small">Stress any word → the meaning shifts completely (7 words, 7 meanings)</span>
+							</li>
+						</ul>
+						<aside class="notes">
+							Ask students to try stressing different words in the sentence.
+							This is a great interactive moment.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 2: WHAT IS NLP? ==================== -->
+				<section>
+					<h2>What is NLP?</h2>
+					<p class="fragment">Tools you already use: ChatGPT, Google Translate, autocomplete, spam filters</p>
+					<div class="fragment box">
+						<em>Teaching machines to read, understand, and generate language</em>
+					</div>
+					<div class="fragment" style="margin-top: 1em;">
+						<h4>Motivating Question</h4>
+						<p class="highlight-box">
+							How does a computer know that <strong>"bank"</strong> in "river bank"
+							≠ "bank account"?
+						</p>
+						<p class="small">Park this — we'll return to it at the end.</p>
+					</div>
+					<aside class="notes">
+						Keep it conversational, no technical terms yet.
+						The "bank" question is the thread that ties the whole session together.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 3: WHY LANGUAGE IS HARD ==================== -->
+				<section>
+					<h2>Why Language is Hard for Machines</h2>
+					<p class="fragment">Computers love structure — tables, numbers, categories</p>
+					<p class="fragment">Language is messy:</p>
+					<div class="two-col" style="margin-top: 0.5em;">
+						<div class="col fragment">
+							<div class="example-card">
+								<p><em>"I saw a bat"</em></p>
+								<p>🦇 Animal? &nbsp; 🏏 Sports gear?</p>
+							</div>
+						</div>
+						<div class="col fragment">
+							<div class="example-card">
+								<p><em>"This is sick"</em></p>
+								<p>😷 Bad? &nbsp; 🤩 Impressive?</p>
+							</div>
+						</div>
+					</div>
+					<div class="fragment highlight-box" style="margin-top: 1em;">
+						<strong>Context is everything</strong> — encoding context is the core challenge of NLP
+					</div>
+				</section>
+
+				<!-- ==================== SLIDE 4: THE NLP PIPELINE ==================== -->
+				<section>
+					<h2>The NLP Pipeline</h2>
+					<div class="pipeline">
+						<span class="pipe-step fragment">Raw Text</span>
+						<span class="pipe-arrow fragment">→</span>
+						<span class="pipe-step fragment">Tokenize</span>
+						<span class="pipe-arrow fragment">→</span>
+						<span class="pipe-step fragment">Clean</span>
+						<span class="pipe-arrow fragment">→</span>
+						<span class="pipe-step fragment">Represent</span>
+						<span class="pipe-arrow fragment">→</span>
+						<span class="pipe-step fragment">Model</span>
+						<span class="pipe-arrow fragment">→</span>
+						<span class="pipe-step fragment">Output</span>
+					</div>
+					<p class="fragment" style="margin-top: 1.5em;">
+						Today: steps 1–4 &nbsp; | &nbsp; <strong>Session 2:</strong> building the model (Transformer / GPT)
+					</p>
+					<aside class="notes">
+						This slide is a navigation map — refer back to it throughout the session.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 5: TOKENIZATION & PREPROCESSING ==================== -->
+				<section>
+					<section>
+						<h2>Tokenization & Preprocessing</h2>
+						<p class="fragment"><strong>Token</strong> = the atomic unit of text (word, subword, or character)</p>
+						<div class="fragment">
+							<h4>Steps</h4>
+							<div class="pipeline small-pipeline">
+								<span class="pipe-step">Lowercase</span>
+								<span class="pipe-arrow">→</span>
+								<span class="pipe-step">Remove punctuation</span>
+								<span class="pipe-arrow">→</span>
+								<span class="pipe-step">Split</span>
+								<span class="pipe-arrow">→</span>
+								<span class="pipe-step">Remove stop words</span>
+							</div>
+						</div>
+						<div class="fragment box" style="margin-top: 1em;">
+							<em>"You're washing and chopping the data before cooking it"</em>
+						</div>
+						<p class="fragment small">Note: different tasks need different preprocessing (tweets vs. legal documents)</p>
+					</section>
+
+					<section>
+						<h3>Demo — Tokenization in Python</h3>
+						<pre><code class="python" data-trim data-noescape data-line-numbers="|1-3|5|6-7|8|10-11">
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
+text = "The cats are sitting on the mats near the river bank."
+tokens = word_tokenize(text.lower())
+stop_words = set(stopwords.words('english'))
+clean_tokens = [t for t in tokens if t.isalpha() and t not in stop_words]
+
+print("Raw tokens:", tokens)
+print("Clean tokens:", clean_tokens)
+						</code></pre>
+						<div class="fragment">
+							<h4>Output</h4>
+							<pre><code class="text" data-trim>
+Raw tokens: ['the', 'cats', 'are', 'sitting', 'on', 'the', 'mats',
+             'near', 'the', 'river', 'bank', '.']
+Clean tokens: ['cats', 'sitting', 'mats', 'near', 'river', 'bank']
+							</code></pre>
+						</div>
+						<p class="fragment small">
+							Why did "the" disappear? Why keep "river" and "bank"?
+						</p>
+						<aside class="notes">
+							Let students predict what gets removed before showing output.
+							Ask why "the" was removed (stop word) and why we keep content words.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 6: THE VOCABULARY PROBLEM ==================== -->
+				<section>
+					<section>
+						<h2>The Vocabulary Problem</h2>
+						<p class="fragment">A model can only work with words it has seen before</p>
+						<div class="fragment">
+							<h4>One-Hot Encoding</h4>
+							<p>Each word = a vector of 0s with a single 1</p>
+						</div>
+						<div class="fragment">
+							$$\mathbf{x}_{\text{cat}} = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ 0 \end{bmatrix}, \quad
+							\mathbf{x}_{\text{dog}} = \begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}, \quad
+							\mathbf{x}_{\text{sat}} = \begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \\ 0 \end{bmatrix}$$
+						</div>
+						<div class="fragment highlight-box" style="margin-top: 1em;">
+							Every pair is equally distant — <strong>the model is blind to meaning</strong>
+						</div>
+					</section>
+
+					<section>
+						<h3>Why One-Hot Fails — The Math</h3>
+						<p class="fragment">For any two different one-hot vectors $\mathbf{x}_i$ and $\mathbf{x}_j$:</p>
+						<div class="fragment">
+							$$\mathbf{x}_i \cdot \mathbf{x}_j = 0 \quad \text{(always orthogonal)}$$
+						</div>
+						<div class="fragment">
+							$$\|\mathbf{x}_i - \mathbf{x}_j\| = \sqrt{2} \quad \text{(always the same distance)}$$
+						</div>
+						<div class="fragment highlight-box" style="margin-top: 0.8em;">
+							$d(\text{cat}, \text{dog}) = d(\text{cat}, \text{democracy}) = \sqrt{2}$
+						</div>
+						<p class="fragment">No notion of similarity is possible — we need a <strong>denser</strong> representation</p>
+						<aside class="notes">
+							This is the core limitation. The model treats every word as equally
+							different from every other word. We need a better representation.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 7: DISTRIBUTIONAL HYPOTHESIS ==================== -->
+				<section>
+					<section>
+						<h2>The Distributional Hypothesis</h2>
+						<div class="box" style="margin-bottom: 1em;">
+							<em>"A word is known by the company it keeps"</em>
+							<br/><span class="small">— J.R. Firth, 1957</span>
+						</div>
+						<p class="fragment">Words appearing in similar contexts tend to have <strong>similar meanings</strong></p>
+						<p class="fragment">Not a formula — a linguistic observation that turns out to be <strong>computationally powerful</strong></p>
+						<aside class="notes">
+							Don't rush this slide. The distributional hypothesis is the
+							conceptual core of the session. If students get this, everything
+							else follows.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Co-occurrence Table</h3>
+						<table class="cooccurrence">
+							<tr>
+								<td></td>
+								<td><strong>hot</strong></td>
+								<td><strong>cold</strong></td>
+								<td><strong>drink</strong></td>
+								<td><strong>morning</strong></td>
+								<td><strong>bark</strong></td>
+							</tr>
+							<tr class="fragment">
+								<td><strong>coffee</strong></td>
+								<td class="check">&#10003;</td>
+								<td></td>
+								<td class="check">&#10003;</td>
+								<td class="check">&#10003;</td>
+								<td></td>
+							</tr>
+							<tr class="fragment">
+								<td><strong>tea</strong></td>
+								<td class="check">&#10003;</td>
+								<td class="check">&#10003;</td>
+								<td class="check">&#10003;</td>
+								<td class="check">&#10003;</td>
+								<td></td>
+							</tr>
+							<tr class="fragment">
+								<td><strong>dog</strong></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td class="check">&#10003;</td>
+							</tr>
+						</table>
+						<ul style="margin-top: 1em;">
+							<li class="fragment">"coffee" and "tea" share many contexts → <strong>close in meaning</strong></li>
+							<li class="fragment">"dog" shares none → <strong>far away</strong></li>
+						</ul>
+						<div class="fragment highlight-box">
+							We can learn meaning from co-occurrence patterns alone — <strong>no labels needed</strong>
+						</div>
+					</section>
+
+					<section>
+						<h3>From Co-occurrence to Geometry</h3>
+						<p class="fragment">Represent each word as a vector of co-occurrence counts</p>
+						<div class="fragment">
+							$$\mathbf{v}_{\text{coffee}} = \begin{bmatrix}1\\0\\1\\1\\0\end{bmatrix}, \quad
+							\mathbf{v}_{\text{tea}} = \begin{bmatrix}1\\1\\1\\1\\0\end{bmatrix}, \quad
+							\mathbf{v}_{\text{dog}} = \begin{bmatrix}0\\0\\0\\0\\1\end{bmatrix}$$
+						</div>
+						<p class="fragment">We measure similarity with <strong>cosine similarity</strong>:</p>
+						<div class="fragment">
+							$$\cos(\theta) = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\| \; \|\mathbf{b}\|}$$
+						</div>
+						<div class="fragment box" style="margin-top: 0.5em;">
+							$\cos(\text{coffee}, \text{tea}) = \frac{1+0+1+1+0}{\sqrt{3}\;\sqrt{4}} = \frac{3}{\sqrt{12}} \approx 0.87$
+							<br/>
+							$\cos(\text{coffee}, \text{dog}) = \frac{0}{\sqrt{3}\;\sqrt{1}} = 0$
+						</div>
+						<p class="fragment">This is the bridge from <strong>raw counting</strong> to <strong>learned embeddings</strong></p>
+						<aside class="notes">
+							Walk through the cosine similarity calculation step by step.
+							The key insight: similar co-occurrence patterns → high cosine → close in meaning.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 8: WORD EMBEDDINGS ==================== -->
+				<section>
+					<section>
+						<h2>Word Embeddings — The Key Idea</h2>
+						<p class="fragment">Instead of sparse one-hot vectors, use <strong>dense low-dimensional vectors</strong></p>
+						<div class="fragment">
+							$$\mathbf{x}_{\text{one-hot}} \in \{0,1\}^{|V|} \quad \longrightarrow \quad \mathbf{e}_{\text{embedding}} \in \mathbb{R}^{d}$$
+						</div>
+						<p class="fragment small">where $|V| \approx 50{,}000$ (vocabulary size) and $d \approx 100\text{–}300$ (embedding dimension)</p>
+						<p class="fragment">Similar words → <strong>geometrically close</strong> vectors</p>
+						<p class="fragment highlight-box">
+							These are not hand-crafted — the model <strong>learns</strong> them entirely from data
+						</p>
+					</section>
+
+					<section>
+						<h3>Vector Arithmetic on Meaning</h3>
+						<div class="fragment">
+							$$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
+						</div>
+						<p class="fragment">Why does this work? The embedding space encodes directions as concepts:</p>
+						<div class="fragment">
+							$$\vec{\text{king}} - \vec{\text{queen}} \approx \vec{\text{man}} - \vec{\text{woman}} \approx \vec{\text{gender}}$$
+						</div>
+						<div class="fragment box" style="margin-top: 0.8em;">
+							<p>The "royalty" direction and "gender" direction are separate axes in the geometry</p>
+							<p class="small">We find the answer by: $\underset{w \in V}{\arg\max} \; \cos\!\big(\mathbf{e}_w, \; \vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}}\big)$</p>
+						</div>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 9: WORD2VEC MECHANICS ==================== -->
+				<section>
+					<section>
+						<h2>Word2Vec</h2>
+						<h3>How It Works</h3>
+						<aside class="notes">
+							This is the deep-dive section. Take 20 minutes here.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Two Training Strategies</h3>
+						<div class="two-col" style="margin-top: 1em;">
+							<div class="col fragment">
+								<h4>CBOW</h4>
+								<p class="small">Continuous Bag of Words</p>
+								<p>Given surrounding words, predict the <strong>center</strong> word</p>
+								<div class="example-card">
+									["the", "cat", <span class="blank">___</span>, "on", "mat"]<br/>
+									→ predict <strong>"sat"</strong>
+								</div>
+							</div>
+							<div class="col fragment">
+								<h4>Skip-gram</h4>
+								<p class="small">&nbsp;</p>
+								<p>Given the center word, predict <strong>surrounding</strong> words</p>
+								<div class="example-card">
+									<strong>"sat"</strong><br/>
+									→ predict ["the", "cat", "on", "mat"]
+								</div>
+							</div>
+						</div>
+						<div class="fragment" style="margin-top: 1em;">
+							<p>Both use a shallow neural network with <strong>one hidden layer</strong></p>
+							<p class="highlight-box">The hidden layer weights <strong>=</strong> the word embeddings</p>
+						</div>
+					</section>
+
+					<section>
+						<h3>Skip-gram Objective</h3>
+						<p class="fragment">Given a center word $w_t$, maximize the probability of its context words:</p>
+						<div class="fragment">
+							$$J(\theta) = \frac{1}{T} \sum_{t=1}^{T} \sum_{\substack{-m \le j \le m \\ j \ne 0}} \log P(w_{t+j} \mid w_t)$$
+						</div>
+						<p class="fragment small">$T$ = number of words in the corpus, $m$ = window size (e.g. 2)</p>
+						<div class="fragment">
+							<p>The probability is computed with a <strong>softmax</strong>:</p>
+							$$P(w_o \mid w_c) = \frac{\exp(\mathbf{u}_{w_o}^{\top} \mathbf{v}_{w_c})}{\sum_{w=1}^{|V|} \exp(\mathbf{u}_{w}^{\top} \mathbf{v}_{w_c})}$$
+						</div>
+						<p class="fragment small">$\mathbf{v}_{w_c}$ = embedding of center word, $\mathbf{u}_{w_o}$ = embedding of context word</p>
+						<aside class="notes">
+							Read this as: "the probability that we see word w_o in the context
+							of word w_c is proportional to how similar their vectors are."
+							The dot product measures similarity — softmax turns it into a probability.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Softmax — Intuition</h3>
+						<p class="fragment">The softmax converts raw scores (dot products) into probabilities:</p>
+						<div class="fragment">
+							$$\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{k=1}^{|V|} e^{z_k}}$$
+						</div>
+						<ul style="margin-top: 0.8em;">
+							<li class="fragment">High dot product $\mathbf{u}_o^\top \mathbf{v}_c$ → high probability (words likely co-occur)</li>
+							<li class="fragment">Low dot product → low probability (words unlikely together)</li>
+						</ul>
+						<div class="fragment highlight-box" style="margin-top: 0.8em;">
+							<strong>Problem:</strong> the denominator sums over the entire vocabulary ($|V| \approx 50{,}000$)
+							<br/>This is expensive — Word2Vec uses <strong>negative sampling</strong> to approximate it
+						</div>
+					</section>
+
+					<section>
+						<h3>Negative Sampling</h3>
+						<p class="fragment">Instead of computing the full softmax, sample $k$ random "negative" words:</p>
+						<div class="fragment">
+							$$J_{\text{neg}} = \log \sigma(\mathbf{u}_{o}^{\top} \mathbf{v}_{c}) + \sum_{i=1}^{k} \mathbb{E}_{w_i \sim P_n(w)} \left[ \log \sigma(-\mathbf{u}_{w_i}^{\top} \mathbf{v}_{c}) \right]$$
+						</div>
+						<p class="fragment small">$\sigma(x) = \frac{1}{1+e^{-x}}$ is the sigmoid function, $k \approx 5\text{–}20$</p>
+						<ul style="margin-top: 0.5em;">
+							<li class="fragment"><strong>Push up</strong> the score of the real context word $(w_o, w_c)$</li>
+							<li class="fragment"><strong>Push down</strong> the score of $k$ random words that were <em>not</em> in the context</li>
+						</ul>
+						<div class="fragment highlight-box" style="margin-top: 0.8em;">
+							This is the core training loop — after millions of push/pull updates,<br/>
+							similar words end up with similar vectors
+						</div>
+						<aside class="notes">
+							The key insight: instead of making the model score ALL words,
+							just make it distinguish real context from random noise.
+							Much faster, nearly as good.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Training Signal Intuition</h3>
+						<ul>
+							<li class="fragment">The model is <strong>never told</strong> what words mean</li>
+							<li class="fragment">It only sees: <em>"these words appear near each other"</em> vs <em>"these words don't"</em></li>
+							<li class="fragment">After millions of examples, the geometry of the embedding space <strong>encodes semantics</strong></li>
+						</ul>
+						<div class="fragment box" style="margin-top: 1em;">
+							<strong>Algebra analogy:</strong> the model solves a system of constraints —
+							words that share many constraints end up close together
+						</div>
+					</section>
+
+					<section>
+						<h3>Demo — Loading Pretrained Vectors</h3>
+						<pre><code class="python" data-trim data-noescape data-line-numbers="|1|3-4|6-7">
+import gensim.downloader as api
+
+# ~66 MB download, cached after first run
+wv = api.load("glove-wiki-gigaword-50")
+
+print(f"Vocabulary: {len(wv):,} words")
+print(f"Dimensions: {wv.vector_size}")
+						</code></pre>
+						<div class="fragment">
+							<h4>Output</h4>
+							<pre><code class="text" data-trim>
+Vocabulary: 400,000 words
+Dimensions: 50
+							</code></pre>
+						</div>
+						<p class="fragment small">
+							Trained on 6 billion tokens from Wikipedia + Gigaword — real-world scale
+						</p>
+						<aside class="notes">
+							These vectors were trained on massive text. Unlike our toy corpus,
+							the results here will be convincing and correct.
+						</aside>
+					</section>
+
+					<section>
+						<h3>Demo — Similarity & Analogies</h3>
+						<pre><code class="python" data-trim data-noescape data-line-numbers="|1-3|5-6|8-10">
+# Word similarity
+wv.similarity("cat", "dog")        # → 0.922
+wv.similarity("cat", "democracy")  # → 0.079
+
+# Nearest neighbors
+wv.most_similar("coffee", topn=3)  # → tea, drinks, drink
+
+# Vector arithmetic: king - man + woman ≈ ?
+wv.most_similar(positive=["king", "woman"], negative=["man"], topn=3)
+# → queen, monarch, princess
+						</code></pre>
+						<div class="fragment highlight-box" style="margin-top: 1em;">
+							Same idea as one-hot — but now <strong>cat/dog are close</strong> and <strong>cat/democracy are far</strong>
+						</div>
+					</section>
+
+					<section>
+						<h3>Demo — More Analogies & Odd One Out</h3>
+						<pre><code class="python" data-trim data-noescape data-line-numbers="|1-3|5-6">
+# Geography analogy: paris - france + germany ≈ ?
+wv.most_similar(positive=["paris", "germany"], negative=["france"])
+# → berlin
+
+# Which word doesn't belong?
+wv.doesnt_match(["cat", "dog", "fish", "car"])  # → car
+						</code></pre>
+						<p class="fragment" style="margin-top: 1em;">
+							The model was <strong>never taught</strong> geography or animal categories.<br/>
+							It learned them purely from word co-occurrence patterns.
+						</p>
+						<aside class="notes">
+							This is the payoff moment. These results feel almost magical
+							and directly validate the distributional hypothesis from earlier.
+						</aside>
+					</section>
+				</section>
+
+				<!-- ==================== SLIDE 10: LIMITS OF STATIC EMBEDDINGS ==================== -->
+				<section>
+					<h2>Limits of Static Embeddings</h2>
+					<p class="fragment">Every word gets <strong>one fixed vector</strong> regardless of context</p>
+					<div class="two-col fragment" style="margin-top: 1em;">
+						<div class="col">
+							<div class="example-card">
+								"I went to the <strong>bank</strong>"
+								<br/><span class="small">💰 Financial institution</span>
+							</div>
+						</div>
+						<div class="col">
+							<div class="example-card">
+								"Sitting on the river <strong>bank</strong>"
+								<br/><span class="small">🌊 Edge of a river</span>
+							</div>
+						</div>
+					</div>
+					<p class="fragment" style="margin-top: 1em;">Word2Vec → <strong>identical vector</strong> for both</p>
+					<div class="fragment highlight-box" style="margin-top: 1em;">
+						Remember our question: <em>"Does Word2Vec know which 'bank' we mean?"</em>
+						<br/><strong>No.</strong> It averages all contexts into one point.
+					</div>
+					<p class="fragment">This is exactly what <strong>Transformers</strong> solve → Session 2</p>
+					<aside class="notes">
+						Return to the motivating question from the beginning.
+						This creates the natural bridge to Session 2.
+					</aside>
+				</section>
+
+				<!-- ==================== SLIDE 11: RECAP ==================== -->
+				<section>
+					<section>
+						<h2>Recap</h2>
+						<ol>
+							<li class="fragment"><strong>Language</strong> = structured system with syntax, semantics, pragmatics — rich and deeply ambiguous</li>
+							<li class="fragment"><strong>Pipeline:</strong> Text → tokens → vocabulary → representation → model</li>
+							<li class="fragment"><strong>One-hot encoding</strong> = blind to meaning</li>
+							<li class="fragment"><strong>Distributional hypothesis:</strong> meaning emerges from context patterns</li>
+							<li class="fragment"><strong>Word2Vec:</strong> learn embeddings by predicting context — no labels needed</li>
+							<li class="fragment"><strong>Remaining gap:</strong> static vectors have no context-sensitivity</li>
+						</ol>
+					</section>
+
+					<section>
+						<h2>What's Next — Session 2</h2>
+						<div class="box">
+							<h3>Transformers & Attention</h3>
+							<p>They read the <strong>whole sentence</strong> before assigning meaning to each word</p>
+						</div>
+						<p class="fragment" style="margin-top: 1em;">
+							"bank" finally gets <strong>different vectors</strong> depending on context
+						</p>
+						<p class="fragment">This is the idea behind GPT, BERT, and every modern language model</p>
+						<p class="fragment" style="margin-top: 1.5em;"><strong>See you in Session 2!</strong></p>
+					</section>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="dist/plugin/notes.js"></script>
+		<script src="dist/plugin/markdown.js"></script>
+		<script src="dist/plugin/highlight.js"></script>
+		<script src="dist/plugin/math.js"></script>
+		<script>
+			Reveal.initialize({
+				hash: true,
+				slideNumber: true,
+				transition: 'slide',
+				katex: {
+					version: 'latest',
+					delimiters: [
+						{ left: '$$', right: '$$', display: true },
+						{ left: '$', right: '$', display: false },
+					],
+					ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+				},
+				plugins: [RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX],
+			});
+		</script>
+	</body>
+</html>
